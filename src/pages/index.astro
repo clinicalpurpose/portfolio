@@ -169,7 +169,6 @@ const hasMore = info.introMore.length > 0;
 
   /* ---------- Intro + expandable text ---------- */
   .bio {
-    position: relative;
     width: 253px;
   }
 
@@ -190,8 +189,7 @@ const hasMore = info.introMore.length > 0;
     transition: color var(--duration) var(--ease-out);
   }
 
-  .bio-toggle:hover .bio-text,
-  .bio[data-open='true'] .bio-text {
+  .bio-toggle:hover .bio-text {
     color: var(--color-hover);
   }
 
@@ -206,12 +204,9 @@ const hasMore = info.introMore.length > 0;
     transform: rotate(180deg);
   }
 
-  /* Sits below the intro so the intro itself never moves */
+  /* Grows inside the centred column, so the block expands from the middle
+     (the intro moves up as the text below opens). */
   .bio-more {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
     display: grid;
     grid-template-rows: 0fr;
     opacity: 0;
@@ -319,11 +314,6 @@ const hasMore = info.introMore.length > 0;
     .intro {
       gap: var(--space-5);
       padding: var(--space-1) 0 var(--space-5);
-    }
-
-    /* On small screens the extra text pushes content down instead of overlaying */
-    .bio-more {
-      position: static;
     }
 
     .work {
