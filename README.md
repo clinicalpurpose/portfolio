@@ -10,7 +10,7 @@ No database, no CMS: everything lives in this folder.
 | Your intro, about text, experience, services, email, socials | `src/content/info/info.md` |
 | A case study (text + list of images) | `src/content/work/<project>/index.md` |
 | Colours, font sizes, spacing, motion | `src/styles/global.css` (top of the file) |
-| The font | Put the `.woff2` in `public/fonts/`, then change the file name in `src/styles/global.css` and `src/layouts/Base.astro` |
+| The font | Put the `.woff2` in `public/fonts/`, then change the file name at the top of `src/styles/global.css` |
 
 ## Adding a new project
 

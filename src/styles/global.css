@@ -1,11 +1,15 @@
 /* ==========================================================================
-   FONT
-   To swap the font later: drop the new .woff2 in /public/fonts and change
-   the file name in `src:` below. Nothing else needs to change.
+   FONT — Neue Haas Grotesk Display Pro 65 Medium
+   1. `local()` uses the font if it is installed on the visitor's computer.
+   2. Once you add the web file to /public/fonts with this exact name, every
+      visitor gets it. Until then, others see Helvetica Neue (very close).
    ========================================================================== */
 @font-face {
   font-family: 'Neue Haas';
-  src: url('/fonts/NHaasGroteskTXPro-56It.woff2') format('woff2');
+  src:
+    local('Neue Haas Grotesk Display Pro 65 Medium'),
+    local('NHaasGroteskDSPro-65Md'),
+    url('/fonts/NHaasGroteskDSPro-65Md.woff2') format('woff2');
   font-weight: 400 600;
   font-style: normal;
   font-display: swap;
