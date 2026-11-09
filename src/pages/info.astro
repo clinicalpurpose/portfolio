@@ -1,0 +1,122 @@
+---
+import { getEntry, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+const entry = (await getEntry('info', 'info'))!;
+const { Content } = await render(entry);
+const { name, intro, location, experience, services } = entry.data;
+---
+
+<Base title="Info" description={intro}>
+  <header class="top">
+    <Nav />
+  </header>
+
+  <main id="main" class="info">
+    <h1 class="visually-hidden">About {name}</h1>
+
+    <section class="section" aria-labelledby="about">
+      <h2 id="about" class="label muted">About</h2>
+      <div class="about">
+        <Content />
+        {location && <p class="muted">{location}</p>}
+      </div>
+    </section>
+
+    {
+      experience.length > 0 && (
+        <section class="section" aria-labelledby="experience">
+          <h2 id="experience" class="label muted">Experience</h2>
+          <ul class="rows">
+            {experience.map((job) => (
+              <li class="row">
+                <span>{job.role}</span>
+                <span>{job.company}</span>
+                <span class="muted">{job.years}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      services.length > 0 && (
+        <section class="section" aria-labelledby="services">
+          <h2 id="services" class="label muted">Services</h2>
+          <ul class="rows">
+            {services.map((s) => (
+              <li>{s}</li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  .top {
+    padding: var(--space-3) var(--page-pad) 0;
+  }
+
+  .info {
+    display: grid;
+    gap: var(--space-5);
+    max-width: 680px;
+    margin: 0 auto;
+    padding: var(--space-6) var(--page-pad) 0;
+  }
+
+  .section {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: var(--space-3);
+  }
+
+  .about {
+    display: grid;
+    gap: 1em;
+    font-size: var(--text-m);
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+  }
+
+  .about :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .rows {
+    display: grid;
+    gap: 2px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: var(--space-3);
+  }
+
+  @media (max-width: 600px) {
+    .section {
+      grid-template-columns: 1fr;
+      gap: var(--space-2);
+    }
+    .rows:has(.row) {
+      gap: var(--space-2);
+    }
+    .row {
+      grid-template-columns: 1fr auto;
+      gap: 0 var(--space-3);
+    }
+    .row span:nth-child(2) {
+      grid-row: 2;
+      color: var(--color-muted);
+    }
+  }
+</style>

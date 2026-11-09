@@ -1,0 +1,41 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  image: ImageMetadata;
+  alt: string;
+  /** 'full' = whole width, 'half' = one of two columns */
+  span?: 'full' | 'half';
+  eager?: boolean;
+}
+const { image, alt, span = 'full', eager = false } = Astro.props;
+
+const sizes =
+  span === 'full'
+    ? '(max-width: 1400px) calc(100vw - 48px), 1352px'
+    : '(max-width: 700px) calc(100vw - 20px), (max-width: 1400px) calc(50vw - 36px), 664px';
+
+// Responsive sizes, never larger than the original file.
+const widths = [480, 800, 1200, 1600, 2400, 3200].filter((w) => w < image.width).concat(image.width);
+---
+
+<Image
+  class="media"
+  src={image}
+  alt={alt}
+  widths={widths}
+  sizes={sizes}
+  loading={eager ? 'eager' : 'lazy'}
+  fetchpriority={eager ? 'high' : undefined}
+/>
+
+<style>
+  .media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-panel);
+    background: var(--color-panel);
+  }
+</style>

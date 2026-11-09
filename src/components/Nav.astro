@@ -1,0 +1,60 @@
+---
+interface Props {
+  /** Where the Contact pill points. Pages with a footer use '#contact'. */
+  contactHref?: string;
+  class?: string;
+}
+const { contactHref = '#contact', class: className } = Astro.props;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+
+const links = [
+  { label: 'Work', href: '/', active: path === '/' || path.startsWith('/work') },
+  { label: 'Info', href: '/info', active: path === '/info' },
+  { label: 'Contact', href: contactHref, active: false },
+];
+---
+
+<nav class:list={['nav', className]} aria-label="Main">
+  <ul>
+    {
+      links.map((link) => (
+        <li>
+          <a class="pill" href={link.href} aria-current={link.active ? 'page' : undefined}>
+            {link.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  .nav ul {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-1);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 76px;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: var(--radius-pill);
+    background: var(--color-pill);
+    transition:
+      background-color var(--duration) var(--ease-out),
+      color var(--duration) var(--ease-out);
+  }
+
+  .pill:hover {
+    background: var(--color-pill-hover);
+  }
+
+  .pill[aria-current='page'] {
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+</style>

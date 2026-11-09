@@ -1,0 +1,22 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+---
+
+<Base title="Not found">
+  <main id="main" class="nf">
+    <Nav contactHref="/info#contact" />
+    <p>This page doesn’t exist. <a class="text-link" href="/">Back to work</a></p>
+  </main>
+</Base>
+
+<style>
+  .nf {
+    display: grid;
+    place-items: center;
+    align-content: space-between;
+    min-height: 100svh;
+    padding: var(--space-3) var(--page-pad) 45svh;
+    text-align: center;
+  }
+</style>

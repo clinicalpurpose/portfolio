@@ -1,0 +1,234 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Media from '../components/Media.astro';
+
+const info = (await getEntry('info', 'info'))!.data;
+const projects = (await getCollection('work', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+---
+
+<Base bodyClass="is-home">
+  <main id="main" class="home">
+    <section class="intro">
+      <Nav contactHref="/info#contact" />
+      <div class="intro-text">
+        <h1 class="visually-hidden">{info.name}</h1>
+        <p>{info.intro}</p>
+      </div>
+      <a class="text-link" href="/info">Experience</a>
+    </section>
+
+    <section
+      class="work"
+      aria-labelledby="work-heading"
+      style={`--accent: ${projects[0]?.data.color ?? 'var(--color-panel)'}`}
+    >
+      <h2 id="work-heading" class="visually-hidden">Selected work</h2>
+
+      <!-- Desktop: one big preview that changes on hover / focus -->
+      <div class="previews" aria-hidden="true">
+        {
+          projects.map((p, i) => (
+            <div class="preview" data-index={i} data-active={i === 0 ? '' : undefined}>
+              <Media image={p.data.cover} alt="" span="half" eager={i === 0} />
+            </div>
+          ))
+        }
+      </div>
+
+      <ul class="list">
+        {
+          projects.map((p, i) => (
+            <li class="item">
+              <a
+                class="item-link"
+                href={`/work/${p.id}/`}
+                data-index={i}
+                data-color={p.data.color}
+                data-active={i === 0 ? '' : undefined}
+              >
+                {/* Mobile: each project shows its own cover */}
+                <span class="card-media">
+                  <Media image={p.data.cover} alt={p.data.coverAlt} span="half" eager={i === 0} />
+                </span>
+                <span class="item-label">
+                  <span>{p.data.title}</span>
+                  {p.data.year && <span class="muted">{p.data.year}</span>}
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </main>
+</Base>
+
+<script>
+  const work = document.querySelector<HTMLElement>('.work');
+  const previews = document.querySelectorAll<HTMLElement>('.preview');
+  const links = document.querySelectorAll<HTMLAnchorElement>('.item-link');
+
+  function activate(index: string) {
+    previews.forEach((el) => el.toggleAttribute('data-active', el.dataset.index === index));
+    links.forEach((el) => {
+      const on = el.dataset.index === index;
+      el.toggleAttribute('data-active', on);
+      if (on && work && el.dataset.color) work.style.setProperty('--accent', el.dataset.color);
+    });
+  }
+
+  links.forEach((link) => {
+    const go = () => activate(link.dataset.index ?? '0');
+    link.addEventListener('pointerenter', go);
+    link.addEventListener('focus', go);
+  });
+</script>
+
+<style>
+  /* ---------- Desktop: two columns, one screen tall ---------- */
+  .home {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    height: 100svh;
+    min-height: 560px;
+    padding: var(--space-2);
+  }
+
+  .intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    text-align: center;
+  }
+
+  .intro-text {
+    max-width: 250px;
+  }
+
+  .work {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-panel);
+    background: var(--accent);
+    transition: background-color 600ms var(--ease-out);
+  }
+
+  .previews,
+  .preview {
+    position: absolute;
+    inset: 0;
+  }
+
+  .preview {
+    opacity: 0;
+    transform: scale(1.02);
+    transition:
+      opacity 600ms var(--ease-out),
+      transform 900ms var(--ease-out);
+  }
+
+  .preview[data-active] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .preview :global(.media) {
+    border-radius: 0;
+  }
+
+  .list {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 100%;
+  }
+
+  .card-media {
+    display: none;
+  }
+
+  .item-label {
+    display: inline-flex;
+    gap: 8px;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition:
+      background-color var(--duration) var(--ease-out),
+      color var(--duration) var(--ease-out);
+  }
+
+  .item-link[data-active] .item-label {
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  .item-link[data-active] .muted {
+    color: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  }
+
+  /* ---------- Tablet & phone: stacked, one card per project ---------- */
+  @media (max-width: 800px) {
+    .home {
+      display: block;
+      height: auto;
+      min-height: 0;
+    }
+
+    .intro {
+      gap: var(--space-5);
+      padding: var(--space-2) 0 var(--space-5);
+    }
+
+    .work {
+      overflow: visible;
+      background: none;
+    }
+
+    .previews {
+      display: none;
+    }
+
+    .list {
+      display: grid;
+      gap: var(--space-4);
+      height: auto;
+    }
+
+    .item-link {
+      display: grid;
+      gap: var(--space-2);
+    }
+
+    .card-media {
+      display: block;
+      aspect-ratio: 4 / 5;
+    }
+
+    .item-label {
+      justify-content: center;
+      padding: 0;
+      background: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    .item-link[data-active] .item-label {
+      background: none;
+      color: inherit;
+    }
+    .item-link[data-active] .muted {
+      color: var(--color-muted);
+    }
+  }
+</style>

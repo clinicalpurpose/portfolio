@@ -1,0 +1,215 @@
+/* ==========================================================================
+   FONT
+   To swap the font later: drop the new .woff2 in /public/fonts and change
+   the file name in `src:` below. Nothing else needs to change.
+   ========================================================================== */
+@font-face {
+  font-family: 'Neue Haas';
+  src: url('/fonts/NHaasGroteskTXPro-56It.woff2') format('woff2');
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   DESIGN TOKENS — the single source of truth for type, colour and spacing.
+   ========================================================================== */
+:root {
+  /* Type */
+  --font-sans: 'Neue Haas', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --text-s: 12px; /* nav, lists, captions — from Figma */
+  --text-m: 14px; /* longer reading text */
+  --leading: 1.3;
+  --tracking: 0.03em; /* = 0.36px at 12px */
+
+  /* Colour */
+  --color-ink: #2d2e2c;
+  --color-muted: #6e6e6c; /* darker than Figma #898989 so it passes contrast checks */
+  --color-surface: #ffffff;
+  --color-panel: #e1e1e1;
+  --color-pill: #e9e9e9;
+  --color-pill-hover: #dcdcdc;
+  --color-focus: #2d2e2c;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 10px; /* homepage gutter */
+  --space-3: 24px; /* gap between case-study images */
+  --space-4: 40px;
+  --space-5: 80px;
+  --space-6: 120px;
+
+  /* Shape */
+  --radius-panel: 3px;
+  --radius-pill: 8px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration: 400ms;
+
+  /* Layout */
+  --page-max: 1400px;
+  --page-pad: var(--space-3);
+}
+
+@media (max-width: 700px) {
+  :root {
+    --page-pad: var(--space-2);
+    --space-3: 10px;
+  }
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-s);
+  font-weight: 500;
+  line-height: var(--leading);
+  letter-spacing: var(--tracking);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
+  margin: 0;
+  padding: 0;
+  font: inherit;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.text-link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  transition: text-decoration-color var(--duration) var(--ease-out);
+}
+.text-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 100;
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  color: var(--color-surface);
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+
+/* ==========================================================================
+   MOTION
+   Page-to-page crossfade (no JavaScript) and gentle reveal of images
+   as they scroll into view. Both switch off for "reduce motion" users.
+   ========================================================================== */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  animation-timing-function: var(--ease-out);
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 40%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  @view-transition {
+    navigation: none;
+  }
+}

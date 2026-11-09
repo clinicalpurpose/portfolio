@@ -1,0 +1,88 @@
+---
+import { getEntry } from 'astro:content';
+const info = (await getEntry('info', 'info'))!.data;
+const year = new Date().getFullYear();
+---
+
+<footer id="contact" class="footer" aria-labelledby="contact-heading">
+  <h2 id="contact-heading" class="muted">Contact</h2>
+  <div class="footer-main">
+    <a class="email" href={`mailto:${info.email}`}>{info.email}</a>
+    <button class="copy pill-btn" type="button" data-copy={info.email} aria-live="polite">Copy</button>
+  </div>
+  <ul class="socials">
+    {
+      info.socials.map((s) => (
+        <li>
+          <a class="text-link" href={s.url} rel="me noopener" target="_blank">
+            {s.label}
+            <span class="visually-hidden"> (opens in a new tab)</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <p class="muted small">© {year} {info.name}</p>
+</footer>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy ?? '');
+        btn.textContent = 'Copied';
+        setTimeout(() => (btn.textContent = 'Copy'), 1600);
+      } catch {
+        /* clipboard unavailable — the mailto link still works */
+      }
+    });
+  });
+</script>
+
+<style>
+  .footer {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--page-pad) var(--space-4);
+    text-align: center;
+  }
+
+  .footer-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .email {
+    font-size: clamp(20px, 3vw, 32px);
+    letter-spacing: 0;
+    line-height: 1.1;
+  }
+
+  .pill-btn {
+    height: 26px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-pill);
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+  }
+  .pill-btn:hover {
+    background: var(--color-pill-hover);
+  }
+
+  .socials {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-1) var(--space-3);
+  }
+
+  .small {
+    margin-top: var(--space-4);
+  }
+</style>
