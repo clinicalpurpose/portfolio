@@ -44,7 +44,10 @@ const info = defineCollection({
   loader: glob({ pattern: 'info.md', base: './src/content/info' }),
   schema: z.object({
     name: z.string(),
+    /** Homepage intro. A line break in the text is kept as a line break. */
     intro: z.string(),
+    /** Extra text revealed by the arrow on the homepage (up to two paragraphs). */
+    introMore: z.array(z.string()).max(2).default([]),
     email: z.string(),
     location: z.string().optional(),
     socials: z.array(z.object({ label: z.string(), url: z.string() })).default([]),

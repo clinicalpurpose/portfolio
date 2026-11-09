@@ -9,7 +9,7 @@ const { Content } = await render(entry);
 const { name, intro, location, experience, services } = entry.data;
 ---
 
-<Base title="Info" description={intro}>
+<Base title="Info" description={intro.replace(/\s+/g, ' ')}>
   <header class="top">
     <Nav />
   </header>
