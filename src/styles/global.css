@@ -1,15 +1,12 @@
 /* ==========================================================================
    FONT — Neue Haas Grotesk Display Pro 65 Medium
-   1. `local()` uses the font if it is installed on the visitor's computer.
-   2. Once you add the web file to /public/fonts with this exact name, every
-      visitor gets it. Until then, others see Helvetica Neue (very close).
+   File: /public/fonts/NHaasGroteskDSPro-65Md.woff2 (Latin + Latin Extended).
+   To swap the font, replace that file (or change the name below and in
+   src/layouts/Base.astro).
    ========================================================================== */
 @font-face {
   font-family: 'Neue Haas';
-  src:
-    local('Neue Haas Grotesk Display Pro 65 Medium'),
-    local('NHaasGroteskDSPro-65Md'),
-    url('/fonts/NHaasGroteskDSPro-65Md.woff2') format('woff2');
+  src: url('/fonts/NHaasGroteskDSPro-65Md.woff2') format('woff2');
   font-weight: 400 600;
   font-style: normal;
   font-display: swap;
