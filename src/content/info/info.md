@@ -16,6 +16,11 @@ introMore:
     calm typography and room for each project to find its own voice.
 email: hello@example.com          # ← your public email
 location: Based in —, working worldwide
+# Homepage clock (bottom left). Placeholder — set your city and its time zone,
+# e.g. label: Berlin, Germany  /  timeZone: Europe/Berlin
+clock:
+  label: City, Country
+  timeZone: UTC
 socials:
   - label: LinkedIn
     url: https://www.linkedin.com/

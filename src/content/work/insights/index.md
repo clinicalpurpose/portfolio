@@ -4,6 +4,7 @@ title: Insights
 client: Polaroid
 year: 2025                # ← please confirm
 role: Design system, Product design   # ← please confirm
+category: Product         # shown next to the title on the homepage
 summary: >-
   Creating a digital design system for Polaroid involves establishing a cohesive
   visual language that reflects the brand's iconic style while ensuring

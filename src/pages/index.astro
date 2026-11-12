@@ -8,132 +8,114 @@ const projects = (await getCollection('work', ({ data }) => !data.draft)).sort(
   (a, b) => a.data.order - b.data.order,
 );
 
-// Placeholder names so the list matches the Figma layout (5 items).
+// Placeholder rows so the list matches the Figma layout (5 rows).
 // They disappear automatically as real projects are added.
-const placeholders = ['Project 2', 'Project 3', 'Project 4', 'Project 5'].slice(
-  0,
-  Math.max(0, 5 - projects.length),
-);
-
-const introLines = info.intro.split('\n');
-const hasMore = info.introMore.length > 0;
+const placeholderCategories = ['E-commerce', 'E-commerce', 'Product', 'Product'];
+const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.length));
 ---
 
 <Base bodyClass="is-home" description={info.intro.replace(/\s+/g, ' ')}>
   <main id="main" class="home">
-    <section class="intro">
-      <a class="corner text-hover" href="/info#contact">Contact</a>
+    <section class="side">
+      <!-- Top bar -->
+      <header class="bar">
+        <a class="name" href="/">{info.name}</a>
+        <nav class="links" aria-label="Main">
+          <a href="/info#contact">Contact</a>
+          <a href="/info">Info</a>
+        </nav>
+      </header>
 
-      <div class="bio" data-open="false">
-        <h1 class="visually-hidden">{info.name}</h1>
-        {
-          hasMore ? (
-            <button class="bio-toggle" type="button" aria-expanded="false" aria-controls="bio-more">
-              <span class="bio-text">
-                {introLines.map((line, i) => (
-                  <>
-                    {i > 0 && <br />}
-                    {line}
-                  </>
-                ))}
-              </span>
-              <svg class="bio-arrow" width="15" height="14" viewBox="0 0 15 14" aria-hidden="true">
-                <rect width="15" height="14" rx="4" fill="#E9E9E9" />
-                <path d="M4.9 4.9h5.2L7.5 9.3z" fill="#000" stroke="#000" stroke-width="0.8" stroke-linejoin="round" />
-              </svg>
-              <span class="visually-hidden">Read more about Damir</span>
-            </button>
-          ) : (
-            <p class="bio-text">{info.intro}</p>
-          )
-        }
-        {
-          hasMore && (
-            <div id="bio-more" class="bio-more">
-              <div class="bio-more-inner">
-                {info.introMore.map((p) => (
-                  <p>{p}</p>
-                ))}
-              </div>
-            </div>
-          )
-        }
-      </div>
-
-      <a class="corner text-hover" href="/info">Experience</a>
-    </section>
-
-    <section class="work" aria-labelledby="work-heading">
-      <h2 id="work-heading" class="visually-hidden">Selected work</h2>
-
-      <!-- Desktop: the panel shows the hovered project's cover -->
-      <div class="previews" aria-hidden="true">
-        {
-          projects.map((p, i) => (
-            <div class="preview" data-index={i} style={`--accent: ${p.data.color}`}>
-              <Media image={p.data.cover} alt="" span="half" />
-            </div>
-          ))
-        }
-      </div>
-
+      <!-- Project list -->
+      <h1 class="visually-hidden">{info.name} — selected work</h1>
       <ul class="list">
         {
           projects.map((p, i) => (
-            <li class="item">
-              <a class="item-link" href={`/work/${p.id}/`} data-index={i}>
+            <li class="row">
+              <a class="row-link" href={`/work/${p.id}/`} data-index={i}>
                 {/* Phones: each project shows its own cover */}
                 <span class="card-media">
                   <Media image={p.data.cover} alt={p.data.coverAlt} span="half" eager={i === 0} />
                 </span>
-                <span class="item-label">{p.data.title}</span>
+                <span class="row-text">
+                  <span>{p.data.title}</span>
+                  {p.data.category && <span>{p.data.category}</span>}
+                </span>
               </a>
             </li>
           ))
         }
         {
-          placeholders.map((name) => (
-            <li class="item item-placeholder" aria-hidden="true">
-              <span class="item-label">{name}</span>
+          placeholders.map((category) => (
+            <li class="row row-placeholder" aria-hidden="true">
+              <span class="row-text">
+                <span>Project Title</span>
+                <span>{category}</span>
+              </span>
             </li>
           ))
         }
       </ul>
+
+      <!-- Bottom bar: location + live clock -->
+      <footer class="bar">
+        <p>
+          {info.clock.label}
+          <time class="clock" data-tz={info.clock.timeZone}>--:--:--</time>
+        </p>
+      </footer>
     </section>
+
+    <!-- Right panel: shows the hovered project's cover -->
+    <div class="panel" aria-hidden="true">
+      {
+        projects.map((p, i) => (
+          <div class="preview" data-index={i} style={`--accent: ${p.data.color}`}>
+            <Media image={p.data.cover} alt="" span="half" />
+          </div>
+        ))
+      }
+    </div>
   </main>
 </Base>
 
 <script>
-  // ---- Intro: arrow expands / collapses the extra text ----
-  const bio = document.querySelector<HTMLElement>('.bio');
-  const toggle = document.querySelector<HTMLButtonElement>('.bio-toggle');
-
-  function setOpen(open: boolean) {
-    if (!bio || !toggle) return;
-    bio.dataset.open = String(open);
-    toggle.setAttribute('aria-expanded', String(open));
-  }
-
-  toggle?.addEventListener('click', () => setOpen(bio?.dataset.open !== 'true'));
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && bio?.dataset.open === 'true') {
-      setOpen(false);
-      toggle?.focus();
+  // ---- Live clock (HH:MM:SS in the chosen time zone) ----
+  const clock = document.querySelector<HTMLTimeElement>('.clock');
+  if (clock) {
+    let format: Intl.DateTimeFormat;
+    try {
+      format = new Intl.DateTimeFormat('en-GB', {
+        timeZone: clock.dataset.tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      });
+    } catch {
+      // Unknown time zone name: fall back to the visitor's own time
+      format = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      });
     }
-  });
-
-  // ---- Work: hovering / focusing a project shows its cover ----
-  const work = document.querySelector<HTMLElement>('.work');
-  const previews = document.querySelectorAll<HTMLElement>('.preview');
-  const links = document.querySelectorAll<HTMLAnchorElement>('.item-link');
-
-  function show(index: string | null) {
-    previews.forEach((el) => el.toggleAttribute('data-active', el.dataset.index === index));
-    links.forEach((el) => el.toggleAttribute('data-active', el.dataset.index === index));
-    work?.toggleAttribute('data-previewing', index !== null);
+    const tick = () => {
+      const now = new Date();
+      clock.textContent = format.format(now);
+      clock.dateTime = now.toISOString();
+    };
+    tick();
+    setInterval(tick, 1000);
   }
 
-  links.forEach((link) => {
+  // ---- Hover / focus a project: show its cover on the right ----
+  const previews = document.querySelectorAll<HTMLElement>('.preview');
+  const show = (index: string | null) =>
+    previews.forEach((el) => el.toggleAttribute('data-active', el.dataset.index === index));
+
+  document.querySelectorAll<HTMLAnchorElement>('.row-link').forEach((link) => {
     link.addEventListener('pointerenter', () => show(link.dataset.index ?? null));
     link.addEventListener('focus', () => show(link.dataset.index ?? null));
     link.addEventListener('pointerleave', () => show(null));
@@ -142,7 +124,7 @@ const hasMore = info.introMore.length > 0;
 </script>
 
 <style>
-  /* ---------- Desktop: two columns, one screen tall (Figma 1:2328) ---------- */
+  /* ---------- Desktop: two columns, one screen tall (Figma 7:2) ---------- */
   .home {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -152,103 +134,71 @@ const hasMore = info.introMore.length > 0;
     padding: var(--space-2);
   }
 
-  .intro {
+  .side {
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: space-between;
-    text-align: center;
+    min-width: 0;
   }
 
-  .text-hover {
-    transition: color var(--duration) var(--ease-out);
-  }
-  .text-hover:hover {
-    color: var(--color-hover);
-  }
-
-  /* ---------- Intro + expandable text ---------- */
-  .bio {
-    width: 253px;
-  }
-
-  .bio-toggle {
-    display: block;
-    width: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    letter-spacing: inherit;
-    text-align: center;
-    cursor: pointer;
-  }
-
-  .bio-text {
-    transition: color var(--duration) var(--ease-out);
-  }
-
-  .bio-toggle:hover .bio-text {
-    color: var(--color-hover);
-  }
-
-  .bio-arrow {
-    display: inline-block;
-    margin-left: 4px;
-    vertical-align: -2px;
-    transition: transform var(--duration) var(--ease-out);
-  }
-
-  .bio[data-open='true'] .bio-arrow {
-    transform: rotate(180deg);
-  }
-
-  /* Grows inside the centred column, so the block expands from the middle
-     (the intro moves up as the text below opens). */
-  .bio-more {
+  /* Top and bottom bars: 24px tall */
+  .bar {
     display: grid;
-    grid-template-rows: 0fr;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      grid-template-rows 500ms var(--ease-out),
-      opacity 400ms var(--ease-out),
-      visibility 0s linear 500ms;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    min-height: 24px;
   }
 
-  .bio[data-open='true'] .bio-more {
-    grid-template-rows: 1fr;
-    opacity: 1;
-    visibility: visible;
-    transition:
-      grid-template-rows 500ms var(--ease-out),
-      opacity 400ms var(--ease-out) 100ms,
-      visibility 0s;
+  .links {
+    display: flex;
+    gap: 30px;
   }
 
-  .bio-more-inner {
-    display: grid;
-    gap: 1.3em;
-    min-height: 0;
-    overflow: hidden;
-    padding-top: var(--space-2);
+  .bar a {
+    transition: opacity var(--duration) var(--ease-out);
+  }
+  .bar a:hover {
+    opacity: 0.3;
   }
 
-  /* ---------- Work panel ---------- */
-  .work {
+  .clock {
+    margin-left: 0.35em;
+    font-variant-numeric: tabular-nums; /* digits don't jump as the seconds change */
+  }
+
+  /* ---------- Project list ---------- */
+  .row-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 20px;
+  }
+
+  .row {
+    transition: opacity var(--duration) var(--ease-out);
+  }
+
+  /* Hovering (or keyboard-focusing) one project dims all the others */
+  .list:has(.row-link:hover) .row:not(:has(.row-link:hover)),
+  .list:has(.row-link:focus-visible) .row:not(:has(.row-link:focus-visible)) {
+    opacity: 0.3;
+  }
+
+  .card-media {
+    display: none;
+  }
+
+  /* ---------- Right panel ---------- */
+  .panel {
     position: relative;
     overflow: hidden;
     background: var(--color-panel);
   }
 
-  .previews,
   .preview {
     position: absolute;
     inset: 0;
-  }
-
-  .preview {
     background: var(--accent);
     opacity: 0;
     transform: scale(1.02);
@@ -266,73 +216,30 @@ const hasMore = info.introMore.length > 0;
     border-radius: 0;
   }
 
-  .list {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    height: 100%;
-    text-align: center;
-  }
-
-  .card-media {
-    display: none;
-  }
-
-  .item-label {
-    display: inline-block;
-    padding: 0 6px;
-    border-radius: 4px;
-    transition:
-      color var(--duration) var(--ease-out),
-      background-color var(--duration) var(--ease-out);
-  }
-
-  .item-link:hover .item-label {
-    color: var(--color-hover);
-  }
-
-  /* While a cover is showing, give names a soft backing so they stay readable */
-  .work[data-previewing] .item-label {
-    background: color-mix(in srgb, var(--color-surface) 80%, transparent);
-  }
-  .work[data-previewing] .item-link[data-active] .item-label {
-    color: var(--color-ink);
-    background: var(--color-surface);
-  }
-
-  /* ---------- Tablet & phone: stacked ---------- */
+  /* ---------- Tablet & phone: one column ---------- */
   @media (max-width: 800px) {
     .home {
       display: block;
       height: auto;
-      min-height: 0;
+      min-height: 100svh;
     }
 
-    .intro {
+    .side {
       gap: var(--space-5);
-      padding: var(--space-1) 0 var(--space-5);
+      min-height: calc(100svh - 2 * var(--space-2));
     }
 
-    .work {
-      overflow: visible;
-      background: none;
-    }
-
-    .previews,
-    .item-placeholder {
+    .panel,
+    .row-placeholder {
       display: none;
     }
 
     .list {
       display: grid;
       gap: var(--space-4);
-      height: auto;
     }
 
-    .item-link {
+    .row-link {
       display: grid;
       gap: var(--space-2);
     }

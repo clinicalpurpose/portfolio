@@ -25,6 +25,8 @@ const work = defineCollection({
       client: z.string().optional(),
       year: z.union([z.string(), z.number()]).optional(),
       role: z.string().optional(),
+      /** Short label shown next to the title on the homepage, e.g. Product, E-commerce */
+      category: z.string().optional(),
       summary: z.string(),
       order: z.number().default(99),
       draft: z.boolean().default(false),
@@ -50,6 +52,10 @@ const info = defineCollection({
     introMore: z.array(z.string()).max(2).default([]),
     email: z.string(),
     location: z.string().optional(),
+    /** Homepage clock: the place name shown, and its time zone (IANA name, e.g. Europe/Berlin) */
+    clock: z
+      .object({ label: z.string(), timeZone: z.string() })
+      .default({ label: 'City, Country', timeZone: 'UTC' }),
     socials: z.array(z.object({ label: z.string(), url: z.string() })).default([]),
     experience: z
       .array(
