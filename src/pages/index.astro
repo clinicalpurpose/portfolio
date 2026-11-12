@@ -62,6 +62,7 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
         <p>
           {info.clock.label}
           <time class="clock" data-tz={info.clock.timeZone}>--:--:--</time>
+          <span class="tz" data-tz-name></span>
         </p>
       </footer>
     </section>
@@ -101,10 +102,20 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
         hourCycle: 'h23',
       });
     }
+    // Time zone abbreviation, e.g. CET in winter / CEST in summer
+    const tzName = document.querySelector<HTMLElement>('[data-tz-name]');
+    const zoneFormat = new Intl.DateTimeFormat('en-GB', {
+      timeZone: format.resolvedOptions().timeZone,
+      timeZoneName: 'short',
+    });
     const tick = () => {
       const now = new Date();
       clock.textContent = format.format(now);
       clock.dateTime = now.toISOString();
+      if (tzName) {
+        tzName.textContent =
+          zoneFormat.formatToParts(now).find((p) => p.type === 'timeZoneName')?.value ?? '';
+      }
     };
     tick();
     setInterval(tick, 1000);
@@ -159,6 +170,10 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
   }
   .bar a:hover {
     opacity: 0.3;
+  }
+
+  .tz {
+    margin-left: 0.35em;
   }
 
   .clock {
