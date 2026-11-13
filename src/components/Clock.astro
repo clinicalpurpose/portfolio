@@ -1,0 +1,48 @@
+---
+/** Location label + live HH:MM:SS clock + time zone abbreviation (CET/CEST). */
+interface Props {
+  label: string;
+  timeZone: string;
+}
+const { label, timeZone } = Astro.props;
+---
+
+<p class="clock-line">
+  {label}
+  <time class="clock" data-tz={timeZone}>--:--:--</time>
+  <span class="tz"></span>
+</p>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.clock-line').forEach((line) => {
+    const clock = line.querySelector<HTMLTimeElement>('.clock');
+    const tz = line.querySelector<HTMLElement>('.tz');
+    if (!clock) return;
+    const opts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' };
+    let format: Intl.DateTimeFormat;
+    try {
+      format = new Intl.DateTimeFormat('en-GB', { ...opts, timeZone: clock.dataset.tz });
+    } catch {
+      format = new Intl.DateTimeFormat('en-GB', opts); // unknown zone: visitor's own time
+    }
+    const zone = new Intl.DateTimeFormat('en-GB', { timeZone: format.resolvedOptions().timeZone, timeZoneName: 'short' });
+    const tick = () => {
+      const now = new Date();
+      clock.textContent = format.format(now);
+      clock.dateTime = now.toISOString();
+      if (tz) tz.textContent = zone.formatToParts(now).find((p) => p.type === 'timeZoneName')?.value ?? '';
+    };
+    tick();
+    setInterval(tick, 1000);
+  });
+</script>
+
+<style>
+  .clock,
+  .tz {
+    margin-left: 0.35em;
+  }
+  .clock {
+    font-variant-numeric: tabular-nums; /* digits don't jump as the seconds change */
+  }
+</style>

@@ -1,0 +1,485 @@
+---
+/**
+ * Homepage — version 2 ( /v2 ) — Figma 22:125
+ * Three columns: name/Info + project title | vertical card strip | Contact +
+ * category/year. Scrolling moves the strip; cards snap to the centre and the
+ * labels beside them follow the centred card.
+ */
+import { getCollection, getEntry } from 'astro:content';
+import Media from './Media.astro';
+import Clock from './Clock.astro';
+import InfoContent from './InfoContent.astro';
+
+interface Props {
+  /** Start with the Info state open (used by /v2/info) */
+  infoOpen?: boolean;
+}
+const { infoOpen = false } = Astro.props;
+
+const info = (await getEntry('info', 'info'))!.data;
+const projects = (await getCollection('work', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+
+// Real projects first, then grey placeholder cards so the strip matches the
+// Figma layout (5 cards). Placeholders disappear as real projects are added.
+const items = [
+  ...projects.map((p) => ({
+    title: p.data.title,
+    category: p.data.category ?? '',
+    year: p.data.year ? String(p.data.year) : '',
+    href: `/work/${p.id}/`,
+    cover: p.data.cover,
+    coverAlt: p.data.coverAlt,
+  })),
+  ...['E-commerce', 'Product', 'E-commerce', 'Product'].map((category) => ({
+    title: 'Project Title',
+    category,
+    year: '—',
+    href: null,
+    cover: null,
+    coverAlt: '',
+  })),
+].slice(0, Math.max(5, projects.length));
+
+const contactLinks = [{ label: 'Email', url: `mailto:${info.email}` }, ...info.socials];
+---
+
+<div class="v2">
+  <!-- Fixed frame: the two side columns. The middle stays empty for the strip. -->
+  <div class="frame">
+    <div class="col col-left">
+      <header class="bar">
+        <a class="name fade-link" href="/v2/">{info.name}</a>
+        <div class="info-group reveal-group" data-open={infoOpen ? '' : undefined}>
+          <a
+            class="info-toggle"
+            href="/v2/info"
+            aria-expanded={infoOpen ? 'true' : 'false'}
+            aria-controls="info-panel"
+          >
+            Info
+          </a>
+          <div id="info-panel" class="info-panel reveal">
+            <InfoContent />
+          </div>
+        </div>
+      </header>
+
+      <div class="mid mid-left" aria-hidden="true">
+        {
+          items.map((item, i) => (
+            <span class="label" data-index={i} data-active={i === 0 ? '' : undefined}>
+              {item.title}
+            </span>
+          ))
+        }
+      </div>
+
+      <footer class="bar">
+        <Clock label={info.clock.label} timeZone={info.clock.timeZone} />
+      </footer>
+    </div>
+
+    <div class="col-spacer"></div>
+
+    <div class="col col-right">
+      <div class="bar bar-end">
+        <div class="contact-group reveal-group">
+          <button class="contact-toggle" type="button" aria-expanded="false" aria-controls="contact-panel">
+            Contact
+          </button>
+          <ul id="contact-panel" class="contact-panel reveal">
+            {
+              contactLinks.map((link) => (
+                <li>
+                  <a href={link.url} target={link.url.startsWith('mailto:') ? undefined : '_blank'} rel="noopener">
+                    {link.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+
+      <div class="mid mid-right" aria-hidden="true">
+        {
+          items.map((item, i) => (
+            <span class="label label-split" data-index={i} data-active={i === 0 ? '' : undefined}>
+              <span>{item.category}</span>
+              <span>{item.year}</span>
+            </span>
+          ))
+        }
+      </div>
+
+      <div class="bar"></div>
+    </div>
+  </div>
+
+  <!-- The strip: real page scroll, so wheel, trackpad, touch and keys all work -->
+  <main id="main" class="strip">
+    <h1 class="visually-hidden">{info.name} — selected work</h1>
+    <ul class="cards">
+      {
+        items.map((item, i) => (
+          <li class="card-item">
+            {item.href ? (
+              <a class="card" href={item.href} data-index={i}>
+                {item.cover && <Media image={item.cover} alt={item.coverAlt} span="half" eager={i === 0} />}
+                <span class="visually-hidden">
+                  {item.title}
+                  {item.category && `, ${item.category}`}
+                  {item.year && `, ${item.year}`}
+                </span>
+              </a>
+            ) : (
+              <div class="card card-placeholder" data-index={i} aria-hidden="true" />
+            )}
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+</div>
+
+<script>
+  import { setupToggle } from '../scripts/reveal';
+
+  // ---- Which card is in the centre? Update the labels beside it ----
+  const cards = [...document.querySelectorAll<HTMLElement>('.card')];
+  const labels = document.querySelectorAll<HTMLElement>('.label');
+  let active = '0';
+
+  function update() {
+    const mid = window.innerHeight / 2;
+    let best = cards[0];
+    let bestDist = Infinity;
+    for (const card of cards) {
+      const r = card.getBoundingClientRect();
+      const d = Math.abs(r.top + r.height / 2 - mid);
+      if (d < bestDist) {
+        bestDist = d;
+        best = card;
+      }
+    }
+    const index = best?.dataset.index ?? '0';
+    if (index === active) return;
+    active = index;
+    labels.forEach((l) => l.toggleAttribute('data-active', l.dataset.index === index));
+    cards.forEach((c) => c.toggleAttribute('data-active', c.dataset.index === index));
+  }
+
+  let ticking = false;
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        update();
+        ticking = false;
+      });
+    },
+    { passive: true },
+  );
+  window.addEventListener('resize', update);
+  cards[0]?.setAttribute('data-active', '');
+  update();
+
+  // Clicking a card that isn't centred brings it to the centre first
+  cards.forEach((card) => {
+    card.addEventListener('click', (e) => {
+      if (card.dataset.index !== active) {
+        e.preventDefault();
+        card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    });
+  });
+
+  // ---- Info and Contact panels (opening one closes the other) ----
+  const infoGroup = document.querySelector<HTMLElement>('.info-group');
+  const infoToggle = document.querySelector<HTMLElement>('.info-toggle');
+  const contactGroup = document.querySelector<HTMLElement>('.contact-group');
+  const contactToggle = document.querySelector<HTMLElement>('.contact-toggle');
+
+  let infoCtl: ReturnType<typeof setupToggle> | undefined;
+  let contactCtl: ReturnType<typeof setupToggle> | undefined;
+
+  if (infoGroup && infoToggle) {
+    infoCtl = setupToggle({
+      group: infoGroup,
+      toggle: infoToggle,
+      closers: [document.querySelector<HTMLElement>('.name')],
+      openPath: '/v2/info',
+      closedPath: '/v2/',
+      onChange: (open) => open && contactCtl?.isOpen() && contactCtl.set(false),
+    });
+  }
+  if (contactGroup && contactToggle) {
+    contactCtl = setupToggle({
+      group: contactGroup,
+      toggle: contactToggle,
+      onChange: (open) => open && infoCtl?.isOpen() && infoCtl.set(false),
+    });
+  }
+</script>
+
+<style>
+  /* The page itself scrolls; cards snap to the vertical centre */
+  :global(html:has(.v2)) {
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+  }
+  :global(html:has(.v2)::-webkit-scrollbar) {
+    display: none;
+  }
+
+  /* ---------- Fixed frame with the two side columns ---------- */
+  .frame {
+    position: fixed;
+    inset: var(--space-2);
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 350px 1fr;
+    gap: var(--space-2);
+    pointer-events: none; /* scrolling and clicks pass through to the strip */
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .bar,
+  .mid {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 20px;
+  }
+
+  .bar-end {
+    justify-content: flex-end;
+  }
+
+  .bar > *,
+  .label {
+    pointer-events: auto;
+  }
+
+  .fade-link,
+  .contact-toggle {
+    transition: opacity var(--duration) var(--ease-out);
+  }
+  .fade-link:hover,
+  .contact-toggle:hover {
+    opacity: 0.3;
+  }
+
+  .contact-toggle {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+  }
+
+  /* ---------- Info (left column, 284px block at its right edge) ---------- */
+  .info-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 284px;
+    min-height: 20px;
+  }
+
+  .info-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    padding: 4px 0 var(--space-3);
+  }
+
+  /* ---------- Contact (right column, top right) ---------- */
+  .contact-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 20px;
+  }
+
+  .contact-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    display: grid;
+    gap: 4px;
+    padding-top: 4px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .contact-panel a {
+    transition: opacity var(--duration) var(--ease-out);
+  }
+  .contact-panel a:hover {
+    opacity: 0.3;
+  }
+
+  /* ---------- Labels beside the centred card ---------- */
+  .mid {
+    display: grid; /* all labels share one cell and crossfade */
+    grid-template-columns: 100%;
+    justify-content: stretch;
+  }
+
+  .mid-left {
+    justify-items: end;
+  }
+
+  .label {
+    grid-area: 1 / 1;
+    opacity: 0;
+    transition: opacity 300ms var(--ease-out);
+  }
+
+  .label[data-active] {
+    opacity: 1;
+    transition-delay: 80ms;
+  }
+
+  .label-split {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  /* Info open: the labels step aside */
+  .mid {
+    transition: opacity var(--duration) var(--ease-out);
+  }
+  .v2:has(.info-group[data-open]) .mid {
+    opacity: 0;
+  }
+  @media (hover: hover) {
+    .v2:has(.info-group:hover) .mid {
+      opacity: 0;
+    }
+  }
+
+  /* ---------- The strip ---------- */
+  .strip {
+    /* room above the first and below the last card, so both can be centred */
+    padding-block: calc(50svh - 225px);
+  }
+
+  .cards {
+    display: grid;
+    gap: 5px;
+    width: 350px;
+    margin: 0 auto;
+  }
+
+  .card {
+    display: block;
+    height: 450px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--color-panel);
+    scroll-snap-align: center;
+  }
+
+  .card :global(.media) {
+    border-radius: 0;
+    transition: transform 900ms var(--ease-out);
+  }
+
+  .card:hover :global(.media) {
+    transform: scale(1.02);
+  }
+
+  /* ---------- Tablet & phone ---------- */
+  @media (max-width: 800px) {
+    .frame {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .col-spacer {
+      display: none;
+    }
+
+    /* Labels sit just above the bottom bar instead of beside the card */
+    .col {
+      justify-content: flex-start;
+    }
+    .mid {
+      margin-top: auto;
+      margin-bottom: var(--space-2);
+    }
+    .mid-left {
+      justify-items: start;
+    }
+    .label-split {
+      justify-content: flex-end;
+      gap: var(--space-3);
+    }
+
+    .info-group {
+      position: static;
+      width: auto;
+    }
+    .info-panel {
+      left: 0;
+      width: calc(200% + var(--space-2));
+      padding-top: var(--space-4);
+      background: var(--color-surface);
+    }
+
+    /* White bands keep the top and bottom text readable over the cards */
+    .frame::before,
+    .frame::after {
+      content: '';
+      position: fixed;
+      left: 0;
+      right: 0;
+      z-index: -1;
+      background: var(--color-surface);
+    }
+    .frame::before {
+      top: 0;
+      height: 40px;
+    }
+    .frame::after {
+      bottom: 0;
+      height: 80px;
+    }
+
+    /* Card size: as wide as fits, but short enough to sit between the bands */
+    .v2 {
+      --card-w: min(350px, 100vw - 20px, (100svh - 220px) * 350 / 450);
+    }
+
+    .strip {
+      padding-block: calc(50svh - var(--card-w) * 450 / 350 / 2);
+    }
+
+    .cards {
+      width: var(--card-w);
+    }
+
+    .card {
+      height: auto;
+      aspect-ratio: 350 / 450;
+    }
+  }
+</style>

@@ -216,3 +216,57 @@ video {
     navigation: none;
   }
 }
+
+/* ==========================================================================
+   REVEAL — panels under "Info" / "Contact" (see src/scripts/reveal.ts)
+   Motion measured from dylan.camera: the panel unrolls top-to-bottom
+   (~550ms, ease-in-out) while every word fades in (~450ms each), one after
+   another (~7ms apart, after ~100ms). Closing is a quick 200ms fade.
+   ========================================================================== */
+.reveal {
+  opacity: 0;
+  visibility: hidden;
+  clip-path: inset(0 0 100% 0);
+  transition:
+    opacity 200ms var(--ease-out),
+    visibility 0s linear 200ms,
+    clip-path 0s linear 200ms;
+}
+
+.reveal .w {
+  opacity: 0;
+  transition: opacity 150ms var(--ease-out);
+}
+
+.reveal-group[data-open] > .reveal {
+  opacity: 1;
+  visibility: visible;
+  clip-path: inset(0 0 -1px 0);
+  transition:
+    clip-path 550ms var(--ease-in-out),
+    opacity 0s,
+    visibility 0s;
+}
+
+.reveal-group[data-open] > .reveal .w {
+  opacity: 1;
+  transition: opacity 450ms var(--ease-in-out) calc(100ms + var(--i, 0) * 7ms);
+}
+
+/* Hover previews the panel — only on devices with a real pointer */
+@media (hover: hover) {
+  .reveal-group:hover > .reveal {
+    opacity: 1;
+    visibility: visible;
+    clip-path: inset(0 0 -1px 0);
+    transition:
+      clip-path 550ms var(--ease-in-out),
+      opacity 0s,
+      visibility 0s;
+  }
+
+  .reveal-group:hover > .reveal .w {
+    opacity: 1;
+    transition: opacity 450ms var(--ease-in-out) calc(100ms + var(--i, 0) * 7ms);
+  }
+}

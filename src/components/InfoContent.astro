@@ -1,0 +1,59 @@
+---
+/** About text + experience list, shown under "Info" (src/content/info/info.md). */
+import { getEntry, render } from 'astro:content';
+
+const entry = (await getEntry('info', 'info'))!;
+const { Content: About } = await render(entry);
+const { experience } = entry.data;
+---
+
+<div class="about">
+  <About />
+</div>
+{
+  experience.length > 0 && (
+    <ul class="jobs" aria-label="Experience">
+      {experience.map((job) => (
+        <li class="job">
+          <span class="job-role">
+            <span>{job.role}</span>
+            <span class="dim">{job.company}</span>
+          </span>
+          <span class="job-years">{job.years}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  .about {
+    display: grid;
+    gap: 1.3em; /* one empty line between paragraphs, as in Figma */
+    padding-bottom: 1.3em;
+  }
+  .about :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .jobs {
+    display: grid;
+    gap: 4px;
+  }
+  .job {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .job-role {
+    display: grid;
+  }
+  .dim {
+    opacity: 0.3;
+  }
+  .job-years {
+    text-align: right;
+    white-space: nowrap;
+  }
+</style>

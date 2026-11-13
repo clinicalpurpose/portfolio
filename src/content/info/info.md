@@ -25,8 +25,6 @@ socials:
     url: https://www.linkedin.com/
   - label: Instagram
     url: https://www.instagram.com/
-  - label: Read.cv
-    url: https://read.cv/
 experience:
   - role: Team Lead
     company: Build in Amsterdam (NL)

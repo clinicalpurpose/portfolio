@@ -1,13 +1,15 @@
 ---
 /**
- * The homepage, with its two states:
+ * Homepage — version 1 ( / ), with two states:
  *  - Index (default): project list + preview panel        — Figma 7:2
  *  - Info: about text + experience under "Info"           — Figma 15:64
  * Info opens while "Info" is hovered, and stays open when clicked
  * (or opened with Enter). /info renders this same page with Info already open.
  */
-import { getCollection, getEntry, render } from 'astro:content';
+import { getCollection, getEntry } from 'astro:content';
 import Media from './Media.astro';
+import Clock from './Clock.astro';
+import InfoContent from './InfoContent.astro';
 
 interface Props {
   /** Start with the Info state open (used by /info) */
@@ -15,10 +17,7 @@ interface Props {
 }
 const { infoOpen = false } = Astro.props;
 
-const infoEntry = (await getEntry('info', 'info'))!;
-const info = infoEntry.data;
-const { Content: About } = await render(infoEntry);
-
+const info = (await getEntry('info', 'info'))!.data;
 const projects = (await getCollection('work', ({ data }) => !data.draft)).sort(
   (a, b) => a.data.order - b.data.order,
 );
@@ -29,14 +28,14 @@ const placeholderCategories = ['E-commerce', 'E-commerce', 'Product', 'Product']
 const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.length));
 ---
 
-<main id="main" class="home" data-info={infoOpen ? '' : undefined}>
+<main id="main" class="home">
   <section class="side">
     <!-- Top bar -->
     <header class="bar">
       <a class="home-link" href="/">{info.name}</a>
       <nav class="links" aria-label="Main">
         <a class="contact" href={`mailto:${info.email}`}>Contact</a>
-        <div class="info-group">
+        <div class="info-group reveal-group" data-open={infoOpen ? '' : undefined}>
           <a
             class="info-toggle"
             href="/info"
@@ -45,25 +44,8 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
           >
             Info
           </a>
-          <div id="info-panel" class="info-panel">
-            <div class="about">
-              <About />
-            </div>
-            {
-              info.experience.length > 0 && (
-                <ul class="jobs" aria-label="Experience">
-                  {info.experience.map((job) => (
-                    <li class="job">
-                      <span class="job-role">
-                        <span>{job.role}</span>
-                        <span class="dim">{job.company}</span>
-                      </span>
-                      <span class="job-years">{job.years}</span>
-                    </li>
-                  ))}
-                </ul>
-              )
-            }
+          <div id="info-panel" class="info-panel reveal">
+            <InfoContent />
           </div>
         </div>
       </nav>
@@ -102,11 +84,7 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
 
     <!-- Bottom bar: location + live clock -->
     <footer class="bar">
-      <p>
-        {info.clock.label}
-        <time class="clock" data-tz={info.clock.timeZone}>--:--:--</time>
-        <span class="tz" data-tz-name></span>
-      </p>
+      <Clock label={info.clock.label} timeZone={info.clock.timeZone} />
     </footer>
   </section>
 
@@ -123,45 +101,7 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
 </main>
 
 <script>
-  // ---- Live clock (HH:MM:SS in the chosen time zone) ----
-  const clock = document.querySelector<HTMLTimeElement>('.clock');
-  if (clock) {
-    let format: Intl.DateTimeFormat;
-    try {
-      format = new Intl.DateTimeFormat('en-GB', {
-        timeZone: clock.dataset.tz,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hourCycle: 'h23',
-      });
-    } catch {
-      // Unknown time zone name: fall back to the visitor's own time
-      format = new Intl.DateTimeFormat('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hourCycle: 'h23',
-      });
-    }
-    // Time zone abbreviation, e.g. CET in winter / CEST in summer
-    const tzName = document.querySelector<HTMLElement>('[data-tz-name]');
-    const zoneFormat = new Intl.DateTimeFormat('en-GB', {
-      timeZone: format.resolvedOptions().timeZone,
-      timeZoneName: 'short',
-    });
-    const tick = () => {
-      const now = new Date();
-      clock.textContent = format.format(now);
-      clock.dateTime = now.toISOString();
-      if (tzName) {
-        tzName.textContent =
-          zoneFormat.formatToParts(now).find((p) => p.type === 'timeZoneName')?.value ?? '';
-      }
-    };
-    tick();
-    setInterval(tick, 1000);
-  }
+  import { setupToggle } from '../scripts/reveal';
 
   // ---- Hover / focus a project: show its cover on the right ----
   const previews = document.querySelectorAll<HTMLElement>('.preview');
@@ -175,84 +115,19 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
     link.addEventListener('blur', () => show(null));
   });
 
-  // ---- Info text: wrap every word so it can fade in one after another ----
-  const infoPanel = document.getElementById('info-panel');
-  if (infoPanel) {
-    const walker = document.createTreeWalker(infoPanel, NodeFilter.SHOW_TEXT);
-    const nodes: Text[] = [];
-    while (walker.nextNode()) {
-      const node = walker.currentNode as Text;
-      if (node.textContent?.trim()) nodes.push(node);
-    }
-    let i = 0;
-    for (const node of nodes) {
-      const frag = document.createDocumentFragment();
-      for (const part of (node.textContent ?? '').split(/(\s+)/)) {
-        if (!part) continue;
-        if (/^\s+$/.test(part)) {
-          frag.append(part);
-        } else {
-          const span = document.createElement('span');
-          span.className = 'w';
-          span.style.setProperty('--i', String(i++));
-          span.textContent = part;
-          frag.append(span);
-        }
-      }
-      node.replaceWith(frag);
-    }
-  }
-
-  // ---- Info state: click "Info" to keep it open ----
-  const home = document.querySelector<HTMLElement>('.home');
-  const toggle = document.querySelector<HTMLAnchorElement>('.info-toggle');
-  const homeLink = document.querySelector<HTMLAnchorElement>('.home-link');
+  // ---- Info: click to keep open (address becomes /info) ----
   const group = document.querySelector<HTMLElement>('.info-group');
-
-  function setInfo(open: boolean, updateUrl = true) {
-    if (!home || !toggle) return;
-    home.toggleAttribute('data-info', open);
-    toggle.setAttribute('aria-expanded', String(open));
-    const path = open ? '/info' : '/';
-    if (updateUrl && location.pathname.replace(/\/$/, '') !== path.replace(/\/$/, '')) {
-      history.pushState({ info: open }, '', path);
-    }
-    if (!open) show(null);
+  const toggle = document.querySelector<HTMLElement>('.info-toggle');
+  if (group && toggle) {
+    setupToggle({
+      group,
+      toggle,
+      closers: [document.querySelector<HTMLElement>('.home-link')],
+      openPath: '/info',
+      closedPath: '/',
+      onChange: (open) => !open && show(null),
+    });
   }
-
-  toggle?.addEventListener('click', (e) => {
-    e.preventDefault();
-    setInfo(!home?.hasAttribute('data-info'));
-  });
-
-  // The name (top left) closes Info instead of reloading the page
-  homeLink?.addEventListener('click', (e) => {
-    if (home?.hasAttribute('data-info')) {
-      e.preventDefault();
-      setInfo(false);
-      homeLink.blur();
-    }
-  });
-
-  // Click anywhere outside the info text closes it
-  document.addEventListener('click', (e) => {
-    const target = e.target as Node;
-    if (home?.hasAttribute('data-info') && group && !group.contains(target) && !homeLink?.contains(target)) {
-      setInfo(false);
-    }
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && home?.hasAttribute('data-info')) {
-      setInfo(false);
-      toggle?.focus();
-    }
-  });
-
-  // Browser back / forward between / and /info
-  window.addEventListener('popstate', () => {
-    setInfo(location.pathname.replace(/\/$/, '') === '/info', false);
-  });
 </script>
 
 <style>
@@ -298,15 +173,6 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
     opacity: 0.3;
   }
 
-  .tz {
-    margin-left: 0.35em;
-  }
-
-  .clock {
-    margin-left: 0.35em;
-    font-variant-numeric: tabular-nums; /* digits don't jump as the seconds change */
-  }
-
   /* ---------- Info (top right) ---------- */
   .info-group {
     position: relative;
@@ -325,56 +191,6 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
     gap: 4px;
     width: 100%;
     padding: 4px 0 var(--space-3);
-    /* Closed: hidden, clipped from the bottom. Closing is a quick fade. */
-    opacity: 0;
-    visibility: hidden;
-    clip-path: inset(0 0 100% 0);
-    transition:
-      opacity 200ms var(--ease-out),
-      visibility 0s linear 200ms,
-      clip-path 0s linear 200ms;
-  }
-
-  /* Each word of the info text (wrapped by the script below) */
-  .info-panel :global(.w) {
-    opacity: 0;
-    transition: opacity 150ms var(--ease-out);
-  }
-
-  .about {
-    display: grid;
-    gap: 1.3em; /* one empty line between paragraphs, as in Figma */
-    padding-bottom: 1.3em;
-  }
-
-  .about :global(a) {
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .jobs {
-    display: grid;
-    gap: 4px;
-  }
-
-  .job {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: var(--space-2);
-  }
-
-  .job-role {
-    display: grid;
-  }
-
-  .dim {
-    opacity: 0.3;
-  }
-
-  .job-years {
-    text-align: right;
-    white-space: nowrap;
   }
 
   /* Smooth fade for the parts that hide in the Info state */
@@ -384,40 +200,32 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
       visibility 0s linear 0s;
   }
 
-  /* ---------- Info state ----------
-     Open while "Info" is hovered (preview), or after it is clicked / pressed
-     with Enter (stays open: data-info) */
-  /* Open — motion measured from dylan.camera:
-     the panel unrolls top-to-bottom (~550ms, ease-in-out) while every word
-     fades in (~450ms each), one after another (~7ms apart, after ~100ms). */
-  .home:is([data-info], :has(.info-group:hover)) .info-panel {
-    opacity: 1;
-    visibility: visible;
-    clip-path: inset(0 0 -1px 0);
-    transition:
-      clip-path 550ms var(--ease-in-out),
-      opacity 0s,
-      visibility 0s;
-  }
-
-  .home:is([data-info], :has(.info-group:hover)) .info-panel :global(.w) {
-    opacity: 1;
-    transition: opacity 450ms var(--ease-in-out) calc(100ms + var(--i, 0) * 7ms);
-  }
-
-  .home:is([data-info], :has(.info-group:hover)) .contact {
-    opacity: 0.3;
-  }
-  .home:is([data-info], :has(.info-group:hover)) .contact:hover {
-    opacity: 1;
-  }
-
-  .home:is([data-info], :has(.info-group:hover)) .fades {
+  /* ---------- Info state: list and preview fade out, Contact dims ---------- */
+  .home:has(.info-group[data-open]) .fades {
     opacity: 0;
     visibility: hidden;
     transition:
       opacity var(--duration) var(--ease-out),
       visibility 0s linear var(--duration);
+  }
+  .home:has(.info-group[data-open]) .contact {
+    opacity: 0.3;
+  }
+  .home:has(.info-group[data-open]) .contact:hover {
+    opacity: 1;
+  }
+
+  @media (hover: hover) {
+    .home:has(.info-group:hover) .fades {
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity var(--duration) var(--ease-out),
+        visibility 0s linear var(--duration);
+    }
+    .home:has(.info-group:hover) .contact {
+      opacity: 0.3;
+    }
   }
 
   /* ---------- Project list ---------- */

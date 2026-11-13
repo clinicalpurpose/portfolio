@@ -1,0 +1,12 @@
+---
+// Homepage version 2 (Figma 22:125). Version 1 stays at /.
+import { getEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import HomeV2 from '../../components/HomeV2.astro';
+
+const info = (await getEntry('info', 'info'))!.data;
+---
+
+<Base title="Home v2" bodyClass="is-home" description={info.intro.replace(/\s+/g, ' ')}>
+  <HomeV2 />
+</Base>

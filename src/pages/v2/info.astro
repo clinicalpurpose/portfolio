@@ -1,0 +1,12 @@
+---
+// Homepage version 2 with Info already open.
+import { getEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import HomeV2 from '../../components/HomeV2.astro';
+
+const info = (await getEntry('info', 'info'))!.data;
+---
+
+<Base title="Info" bodyClass="is-home" description={info.intro.replace(/\s+/g, ' ')}>
+  <HomeV2 infoOpen />
+</Base>
