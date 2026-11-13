@@ -175,6 +175,34 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
     link.addEventListener('blur', () => show(null));
   });
 
+  // ---- Info text: wrap every word so it can fade in one after another ----
+  const infoPanel = document.getElementById('info-panel');
+  if (infoPanel) {
+    const walker = document.createTreeWalker(infoPanel, NodeFilter.SHOW_TEXT);
+    const nodes: Text[] = [];
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text;
+      if (node.textContent?.trim()) nodes.push(node);
+    }
+    let i = 0;
+    for (const node of nodes) {
+      const frag = document.createDocumentFragment();
+      for (const part of (node.textContent ?? '').split(/(\s+)/)) {
+        if (!part) continue;
+        if (/^\s+$/.test(part)) {
+          frag.append(part);
+        } else {
+          const span = document.createElement('span');
+          span.className = 'w';
+          span.style.setProperty('--i', String(i++));
+          span.textContent = part;
+          frag.append(span);
+        }
+      }
+      node.replaceWith(frag);
+    }
+  }
+
   // ---- Info state: click "Info" to keep it open ----
   const home = document.querySelector<HTMLElement>('.home');
   const toggle = document.querySelector<HTMLAnchorElement>('.info-toggle');
@@ -297,13 +325,20 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
     gap: 4px;
     width: 100%;
     padding: 4px 0 var(--space-3);
+    /* Closed: hidden, clipped from the bottom. Closing is a quick fade. */
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-4px);
+    clip-path: inset(0 0 100% 0);
     transition:
-      opacity var(--duration) var(--ease-out),
-      transform var(--duration) var(--ease-out),
-      visibility 0s linear var(--duration);
+      opacity 200ms var(--ease-out),
+      visibility 0s linear 200ms,
+      clip-path 0s linear 200ms;
+  }
+
+  /* Each word of the info text (wrapped by the script below) */
+  .info-panel :global(.w) {
+    opacity: 0;
+    transition: opacity 150ms var(--ease-out);
   }
 
   .about {
@@ -352,14 +387,22 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
   /* ---------- Info state ----------
      Open while "Info" is hovered (preview), or after it is clicked / pressed
      with Enter (stays open: data-info) */
+  /* Open — motion measured from dylan.camera:
+     the panel unrolls top-to-bottom (~550ms, ease-in-out) while every word
+     fades in (~450ms each), one after another (~7ms apart, after ~100ms). */
   .home:is([data-info], :has(.info-group:hover)) .info-panel {
     opacity: 1;
     visibility: visible;
-    transform: none;
+    clip-path: inset(0 0 -1px 0);
     transition:
-      opacity var(--duration) var(--ease-out),
-      transform var(--duration) var(--ease-out),
+      clip-path 550ms var(--ease-in-out),
+      opacity 0s,
       visibility 0s;
+  }
+
+  .home:is([data-info], :has(.info-group:hover)) .info-panel :global(.w) {
+    opacity: 1;
+    transition: opacity 450ms var(--ease-in-out) calc(100ms + var(--i, 0) * 7ms);
   }
 
   .home:is([data-info], :has(.info-group:hover)) .contact {
