@@ -33,10 +33,7 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
   <section class="side">
     <!-- Top bar -->
     <header class="bar">
-      <a class="home-link" href="/">
-        <span class="label-name">{info.name}</span>
-        <span class="label-index" aria-hidden="true">Index</span>
-      </a>
+      <a class="home-link" href="/">{info.name}</a>
       <nav class="links" aria-label="Main">
         <a class="contact" href={`mailto:${info.email}`}>Contact</a>
         <div class="info-group">
@@ -200,7 +197,7 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
     setInfo(!home?.hasAttribute('data-info'));
   });
 
-  // "Index" (top left) closes Info instead of reloading the page
+  // The name (top left) closes Info instead of reloading the page
   homeLink?.addEventListener('click', (e) => {
     if (home?.hasAttribute('data-info')) {
       e.preventDefault();
@@ -271,10 +268,6 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
   .home-link:hover,
   .contact:hover {
     opacity: 0.3;
-  }
-
-  .label-index {
-    display: none;
   }
 
   .tz {
@@ -369,18 +362,9 @@ const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.len
       visibility 0s;
   }
 
-  .home:is([data-info], :has(.info-group:hover)) .label-name {
-    display: none;
-  }
-  .home:is([data-info], :has(.info-group:hover)) .label-index {
-    display: inline;
-  }
-
-  .home:is([data-info], :has(.info-group:hover)) .home-link,
   .home:is([data-info], :has(.info-group:hover)) .contact {
     opacity: 0.3;
   }
-  .home:is([data-info], :has(.info-group:hover)) .home-link:hover,
   .home:is([data-info], :has(.info-group:hover)) .contact:hover {
     opacity: 1;
   }
