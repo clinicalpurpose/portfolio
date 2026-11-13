@@ -1,0 +1,493 @@
+---
+/**
+ * The homepage, with its two states:
+ *  - Index (default): project list + preview panel        — Figma 7:2
+ *  - Info: about text + experience under "Info"           — Figma 15:64
+ * Info opens while "Info" is hovered, and stays open when clicked
+ * (or opened with Enter). /info renders this same page with Info already open.
+ */
+import { getCollection, getEntry, render } from 'astro:content';
+import Media from './Media.astro';
+
+interface Props {
+  /** Start with the Info state open (used by /info) */
+  infoOpen?: boolean;
+}
+const { infoOpen = false } = Astro.props;
+
+const infoEntry = (await getEntry('info', 'info'))!;
+const info = infoEntry.data;
+const { Content: About } = await render(infoEntry);
+
+const projects = (await getCollection('work', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+
+// Placeholder rows so the list matches the Figma layout (5 rows).
+// They disappear automatically as real projects are added.
+const placeholderCategories = ['E-commerce', 'E-commerce', 'Product', 'Product'];
+const placeholders = placeholderCategories.slice(0, Math.max(0, 5 - projects.length));
+---
+
+<main id="main" class="home" data-info={infoOpen ? '' : undefined}>
+  <section class="side">
+    <!-- Top bar -->
+    <header class="bar">
+      <a class="home-link" href="/">
+        <span class="label-name">{info.name}</span>
+        <span class="label-index" aria-hidden="true">Index</span>
+      </a>
+      <nav class="links" aria-label="Main">
+        <a class="contact" href={`mailto:${info.email}`}>Contact</a>
+        <div class="info-group">
+          <a
+            class="info-toggle"
+            href="/info"
+            aria-expanded={infoOpen ? 'true' : 'false'}
+            aria-controls="info-panel"
+          >
+            Info
+          </a>
+          <div id="info-panel" class="info-panel">
+            <div class="about">
+              <About />
+            </div>
+            {
+              info.experience.length > 0 && (
+                <ul class="jobs" aria-label="Experience">
+                  {info.experience.map((job) => (
+                    <li class="job">
+                      <span class="job-role">
+                        <span>{job.role}</span>
+                        <span class="dim">{job.company}</span>
+                      </span>
+                      <span class="job-years">{job.years}</span>
+                    </li>
+                  ))}
+                </ul>
+              )
+            }
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Project list -->
+    <h1 class="visually-hidden">{info.name} — selected work</h1>
+    <ul class="list fades">
+      {
+        projects.map((p, i) => (
+          <li class="row">
+            <a class="row-link" href={`/work/${p.id}/`} data-index={i}>
+              {/* Phones: each project shows its own cover */}
+              <span class="card-media">
+                <Media image={p.data.cover} alt={p.data.coverAlt} span="half" eager={i === 0} />
+              </span>
+              <span class="row-text">
+                <span>{p.data.title}</span>
+                {p.data.category && <span>{p.data.category}</span>}
+              </span>
+            </a>
+          </li>
+        ))
+      }
+      {
+        placeholders.map((category) => (
+          <li class="row row-placeholder" aria-hidden="true">
+            <span class="row-text">
+              <span>Project Title</span>
+              <span>{category}</span>
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <!-- Bottom bar: location + live clock -->
+    <footer class="bar">
+      <p>
+        {info.clock.label}
+        <time class="clock" data-tz={info.clock.timeZone}>--:--:--</time>
+        <span class="tz" data-tz-name></span>
+      </p>
+    </footer>
+  </section>
+
+  <!-- Right panel: shows the hovered project's cover -->
+  <div class="panel fades" aria-hidden="true">
+    {
+      projects.map((p, i) => (
+        <div class="preview" data-index={i} style={`--accent: ${p.data.color}`}>
+          <Media image={p.data.cover} alt="" span="half" />
+        </div>
+      ))
+    }
+  </div>
+</main>
+
+<script>
+  // ---- Live clock (HH:MM:SS in the chosen time zone) ----
+  const clock = document.querySelector<HTMLTimeElement>('.clock');
+  if (clock) {
+    let format: Intl.DateTimeFormat;
+    try {
+      format = new Intl.DateTimeFormat('en-GB', {
+        timeZone: clock.dataset.tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      });
+    } catch {
+      // Unknown time zone name: fall back to the visitor's own time
+      format = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      });
+    }
+    // Time zone abbreviation, e.g. CET in winter / CEST in summer
+    const tzName = document.querySelector<HTMLElement>('[data-tz-name]');
+    const zoneFormat = new Intl.DateTimeFormat('en-GB', {
+      timeZone: format.resolvedOptions().timeZone,
+      timeZoneName: 'short',
+    });
+    const tick = () => {
+      const now = new Date();
+      clock.textContent = format.format(now);
+      clock.dateTime = now.toISOString();
+      if (tzName) {
+        tzName.textContent =
+          zoneFormat.formatToParts(now).find((p) => p.type === 'timeZoneName')?.value ?? '';
+      }
+    };
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  // ---- Hover / focus a project: show its cover on the right ----
+  const previews = document.querySelectorAll<HTMLElement>('.preview');
+  const show = (index: string | null) =>
+    previews.forEach((el) => el.toggleAttribute('data-active', el.dataset.index === index));
+
+  document.querySelectorAll<HTMLAnchorElement>('.row-link').forEach((link) => {
+    link.addEventListener('pointerenter', () => show(link.dataset.index ?? null));
+    link.addEventListener('focus', () => show(link.dataset.index ?? null));
+    link.addEventListener('pointerleave', () => show(null));
+    link.addEventListener('blur', () => show(null));
+  });
+
+  // ---- Info state: click "Info" to keep it open ----
+  const home = document.querySelector<HTMLElement>('.home');
+  const toggle = document.querySelector<HTMLAnchorElement>('.info-toggle');
+  const homeLink = document.querySelector<HTMLAnchorElement>('.home-link');
+  const group = document.querySelector<HTMLElement>('.info-group');
+
+  function setInfo(open: boolean, updateUrl = true) {
+    if (!home || !toggle) return;
+    home.toggleAttribute('data-info', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    const path = open ? '/info' : '/';
+    if (updateUrl && location.pathname.replace(/\/$/, '') !== path.replace(/\/$/, '')) {
+      history.pushState({ info: open }, '', path);
+    }
+    if (!open) show(null);
+  }
+
+  toggle?.addEventListener('click', (e) => {
+    e.preventDefault();
+    setInfo(!home?.hasAttribute('data-info'));
+  });
+
+  // "Index" (top left) closes Info instead of reloading the page
+  homeLink?.addEventListener('click', (e) => {
+    if (home?.hasAttribute('data-info')) {
+      e.preventDefault();
+      setInfo(false);
+      homeLink.blur();
+    }
+  });
+
+  // Click anywhere outside the info text closes it
+  document.addEventListener('click', (e) => {
+    const target = e.target as Node;
+    if (home?.hasAttribute('data-info') && group && !group.contains(target) && !homeLink?.contains(target)) {
+      setInfo(false);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && home?.hasAttribute('data-info')) {
+      setInfo(false);
+      toggle?.focus();
+    }
+  });
+
+  // Browser back / forward between / and /info
+  window.addEventListener('popstate', () => {
+    setInfo(location.pathname.replace(/\/$/, '') === '/info', false);
+  });
+</script>
+
+<style>
+  /* ---------- Desktop: two columns, one screen tall ---------- */
+  .home {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    height: 100svh;
+    min-height: 560px;
+    padding: var(--space-2);
+  }
+
+  .side {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  /* Top and bottom bars: 24px tall */
+  .bar {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 24px;
+  }
+
+  /* Contact + Info sit at the right of the column: Contact | 50px | Info (280px wide) */
+  .links {
+    display: flex;
+    align-items: center;
+    gap: 50px;
+  }
+
+  .home-link,
+  .contact {
+    transition: opacity var(--duration) var(--ease-out);
+  }
+  .home-link:hover,
+  .contact:hover {
+    opacity: 0.3;
+  }
+
+  .label-index {
+    display: none;
+  }
+
+  .tz {
+    margin-left: 0.35em;
+  }
+
+  .clock {
+    margin-left: 0.35em;
+    font-variant-numeric: tabular-nums; /* digits don't jump as the seconds change */
+  }
+
+  /* ---------- Info (top right) ---------- */
+  .info-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 280px;
+    min-height: 24px;
+  }
+
+  .info-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 2;
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    padding: 4px 0 var(--space-3);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition:
+      opacity var(--duration) var(--ease-out),
+      transform var(--duration) var(--ease-out),
+      visibility 0s linear var(--duration);
+  }
+
+  .about {
+    display: grid;
+    gap: 1.3em; /* one empty line between paragraphs, as in Figma */
+    padding-bottom: 1.3em;
+  }
+
+  .about :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .jobs {
+    display: grid;
+    gap: 4px;
+  }
+
+  .job {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .job-role {
+    display: grid;
+  }
+
+  .dim {
+    opacity: 0.3;
+  }
+
+  .job-years {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Smooth fade for the parts that hide in the Info state */
+  .fades {
+    transition:
+      opacity var(--duration) var(--ease-out),
+      visibility 0s linear 0s;
+  }
+
+  /* ---------- Info state ----------
+     Open while "Info" is hovered (preview), or after it is clicked / pressed
+     with Enter (stays open: data-info) */
+  .home:is([data-info], :has(.info-group:hover)) .info-panel {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition:
+      opacity var(--duration) var(--ease-out),
+      transform var(--duration) var(--ease-out),
+      visibility 0s;
+  }
+
+  .home:is([data-info], :has(.info-group:hover)) .label-name {
+    display: none;
+  }
+  .home:is([data-info], :has(.info-group:hover)) .label-index {
+    display: inline;
+  }
+
+  .home:is([data-info], :has(.info-group:hover)) .home-link,
+  .home:is([data-info], :has(.info-group:hover)) .contact {
+    opacity: 0.3;
+  }
+  .home:is([data-info], :has(.info-group:hover)) .home-link:hover,
+  .home:is([data-info], :has(.info-group:hover)) .contact:hover {
+    opacity: 1;
+  }
+
+  .home:is([data-info], :has(.info-group:hover)) .fades {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity var(--duration) var(--ease-out),
+      visibility 0s linear var(--duration);
+  }
+
+  /* ---------- Project list ---------- */
+  .row-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 20px;
+  }
+
+  .row {
+    transition: opacity var(--duration) var(--ease-out);
+  }
+
+  /* Hovering (or keyboard-focusing) one project dims all the others */
+  .list:has(.row-link:hover) .row:not(:has(.row-link:hover)),
+  .list:has(.row-link:focus-visible) .row:not(:has(.row-link:focus-visible)) {
+    opacity: 0.3;
+  }
+
+  .card-media {
+    display: none;
+  }
+
+  /* ---------- Right panel ---------- */
+  .panel {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-panel);
+  }
+
+  .preview {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    transform: scale(1.02);
+    transition:
+      opacity 600ms var(--ease-out),
+      transform 900ms var(--ease-out);
+  }
+
+  .preview[data-active] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .preview :global(.media) {
+    border-radius: 0;
+  }
+
+  /* ---------- Tablet & phone: one column ---------- */
+  @media (max-width: 800px) {
+    .home {
+      display: block;
+      height: auto;
+      min-height: 100svh;
+    }
+
+    .side {
+      gap: var(--space-5);
+      min-height: calc(100svh - 2 * var(--space-2));
+    }
+
+    .links {
+      gap: 30px;
+    }
+
+    /* Info text spans the full width under the top bar */
+    .info-group {
+      position: static;
+      width: auto;
+    }
+
+    .info-panel {
+      padding-top: var(--space-4);
+    }
+
+    .panel,
+    .row-placeholder {
+      display: none;
+    }
+
+    .list {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .row-link {
+      display: grid;
+      gap: var(--space-2);
+    }
+
+    .card-media {
+      display: block;
+      aspect-ratio: 4 / 5;
+    }
+  }
+</style>

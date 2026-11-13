@@ -28,15 +28,18 @@ socials:
   - label: Read.cv
     url: https://read.cv/
 experience:
+  - role: Team Lead
+    company: Build in Amsterdam (NL)
+    years: 2021 – Now
   - role: Senior Designer
-    company: Studio Name
-    years: 2023 — Now
-  - role: Digital Designer
-    company: Agency Name
-    years: 2020 — 2023
+    company: KISKA
+    years: 2018 – 2021
+  - role: Senior Designer
+    company: Glasdollar
+    years: 2017 – 2018
   - role: Designer
-    company: Company Name
-    years: 2017 — 2020
+    company: Saturized
+    years: 2012 – 2017
 services:
   - Design systems
   - Product & interface design
